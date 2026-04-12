@@ -11,11 +11,104 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model User {
+  id                 String    @id @default(cuid())
+  emailAddress       String    @unique
+  firstName          String?
+  lastName           String?
+  imageUrl           String?
+  stripeCustomerId   String?   @unique
+  subscriptionStatus String?
+  accounts           Account[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
 
-  @@index([name])
+model Account {
+  id             String   @id @default(cuid())
+  accessToken    String   @unique
+  refreshToken   String?
+  provider       String
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  syncStatus     String   @default("IDLE")
+  nextDeltaToken String?
+  threads        Thread[]
+  emails         Email[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Thread {
+  id              String   @id @default(cuid())
+  subject         String
+  lastMessageDate DateTime
+  snippet         String
+  quantity        Int
+  hasAttachments  Boolean  @default(false)
+  accountId       String
+  account         Account  @relation(fields: [accountId], references: [id])
+  emails          Email[]
+  draftEmail      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model Email {
+  id                String         @id @default(cuid())
+  threadId          String
+  thread            Thread         @relation(fields: [threadId], references: [id])
+  accountId         String
+  account           Account        @relation(fields: [accountId], references: [id])
+  from              EmailAddress   @relation("FromEmail", fields: [fromId], references: [id])
+  fromId            String
+  to                EmailAddress[] @relation("ToEmails")
+  cc                EmailAddress[] @relation("CcEmails")
+  bcc               EmailAddress[] @relation("BccEmails")
+  replyTo           EmailAddress[] @relation("ReplyToEmails")
+  subject           String?
+  body              String?
+  bodySnippet       String?
+  attachments       Attachment[]
+  sysLabels         String[]
+  userLabels        String[]
+  internetMessageId String         @unique
+  sentAt            DateTime
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([threadId])
+  @@index([accountId])
+  @@index([sentAt])
+}
+
+model EmailAddress {
+  id            String  @id @default(cuid())
+  name          String?
+  address       String
+  raw           String?
+  fromEmails    Email[] @relation("FromEmail")
+  toEmails      Email[] @relation("ToEmails")
+  ccEmails      Email[] @relation("CcEmails")
+  bccEmails     Email[] @relation("BccEmails")
+  replyToEmails Email[] @relation("ReplyToEmails")
+
+  @@unique([address])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  filename    String
+  contentType String
+  size        Int
+  contentId   String?
+  content     String?
+  emailId     String
+  email       Email    @relation(fields: [emailId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([emailId])
 }
