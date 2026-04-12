@@ -1,28 +1,38 @@
 import * as React from "react";
+import * as AvatarPrimitive from "@radix-ui/react-avatar";
 import { cn } from "@/lib/utils";
 
-interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-}
-
-export function Avatar({ className, children, ...props }: AvatarProps) {
-  return (
-    <div
+export const Avatar = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Root>, React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>>(
+  ({ className, ...props }, ref) => (
+    <AvatarPrimitive.Root
+      ref={ref}
       className={cn(
-        "inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800",
         className
       )}
       {...props}
-    >
-      {children}
-    </div>
-  );
-}
+    />
+  )
+);
+Avatar.displayName = AvatarPrimitive.Root.displayName;
 
-export function AvatarFallback({ className, children, ...props }: AvatarProps) {
-  return (
-    <span className={cn("text-sm font-medium", className)} {...props}>
-      {children}
-    </span>
-  );
-}
+export const AvatarImage = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Image>, React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>>(
+  ({ className, ...props }, ref) => (
+    <AvatarPrimitive.Image ref={ref} className={cn("aspect-square h-full w-full object-cover", className)} {...props} />
+  )
+);
+AvatarImage.displayName = AvatarPrimitive.Image.displayName;
+
+export const AvatarFallback = React.forwardRef<React.ElementRef<typeof AvatarPrimitive.Fallback>, React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>>(
+  ({ className, ...props }, ref) => (
+    <AvatarPrimitive.Fallback
+      ref={ref}
+      className={cn(
+        "flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-sm font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+        className
+      )}
+      {...props}
+    />
+  )
+);
+AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
