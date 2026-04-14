@@ -6,6 +6,7 @@ import { X, Send, Sparkles, Paperclip, MoreVertical, Minimize2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { readDataStream } from "ai";
 
 interface ComposeModalProps {
   onClose: () => void;
@@ -17,21 +18,39 @@ export function ComposeModal({ onClose }: ComposeModalProps) {
   const [content, setContent] = useState("");
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  const handleAiCompose = () => {
+  const handleAiCompose = async () => {
+    if (isAiGenerating) return;
     setIsAiGenerating(true);
-    setTimeout(() => {
-      setContent((prev) =>
-        `${prev}\n\nI hope this email finds you well. I'm writing to discuss the latest updates on the project...`
-      );
+    
+    try {
+      const response = await fetch("/api/ai/compose", {
+        method: "POST",
+        body: JSON.stringify({
+          subject,
+          prompt: content || "Write a professional email.",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate");
+
+      if (response.body) {
+        for await (const part of readDataStream(response.body)) {
+          if (part.type === "text-part") {
+            setContent((prev) => prev + part.value);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("AI Compose error:", error);
+    } finally {
       setIsAiGenerating(false);
-    }, 1500);
+    }
   };
 
   return (
     <div
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       className={cn(
-        "fixed bottom-0 right-24 w-150 bg-white dark:bg-slate-900 shadow-2xl rounded-t-xl border flex flex-col z-100 animate-in slide-in-from-bottom-full duration-300",
+        "fixed bottom-0 right-24 w-150 bg-white dark:bg-slate-900 shadow-2xl rounded-t-xl border flex flex-col z-[100] animate-in slide-in-from-bottom-full duration-300",
         isAiGenerating && "ring-2 ring-blue-500"
       )}
     >
@@ -74,18 +93,17 @@ export function ComposeModal({ onClose }: ComposeModalProps) {
           value={content}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
           placeholder="Write your message..."
-          className="min-h-75 border-none shadow-none focus-visible:ring-0 p-6 text-base resize-none"
+          className="min-h-[300px] border-none shadow-none focus-visible:ring-0 p-6 text-base resize-none"
         />
 
         {/* AI Smart Compose Trigger */}
         <Button
-          onClick={handleAiCompose}
+          onClick={() => void handleAiCompose()}
           variant="outline"
           size="sm"
           disabled={isAiGenerating}
           className="absolute bottom-4 right-4 rounded-full gap-2 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
         >
-          {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */}
           <Sparkles className={cn("w-4 h-4", isAiGenerating && "animate-pulse")} />
           {isAiGenerating ? "AI is thinking..." : "AI Smart Compose"}
         </Button>

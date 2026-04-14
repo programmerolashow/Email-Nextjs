@@ -1,59 +1,31 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { chatCompletion } from "@/lib/openai";
+import { openai } from "@ai-sdk/openai";
+import { streamText } from "ai";
 import { getContext } from "@/lib/rag-pipeline";
 
-const isChatMessage = (value: unknown): value is { role: string; content: string } => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { role?: unknown }).role === "string" &&
-    typeof (value as { content?: unknown }).content === "string"
-  );
-};
-
-export const POST = async (req: NextRequest) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const authFn = auth as () => Promise<{ userId?: string }>;
-  const { userId } = await authFn();
+export const POST = async (req: Request) => {
+  const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return new Response("Unauthorized", { status: 401 });
   }
 
-  const body = (await req.json()) as unknown;
-  if (typeof body !== "object" || body === null || !("messages" in body)) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const { messages } = await req.json();
+  const lastMessage = messages[messages.length - 1];
+  const context = await getContext(lastMessage.content);
 
-  const rawMessages = (body as { messages?: unknown }).messages;
-  if (!Array.isArray(rawMessages)) {
-    return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
-  }
-
-  const messages = rawMessages
-    .filter(isChatMessage)
-    .map((message) => ({
-      role: message.role as "system" | "user" | "assistant",
-      content: message.content,
-    }));
-
-  if (messages.length === 0) {
-    return NextResponse.json({ error: "No messages provided" }, { status: 400 });
-  }
-
-  const lastMessage = messages[messages.length - 1].content;
-  const context = await getContext(lastMessage);
-
-  const systemPrompt = {
-    role: "system" as const,
-    content: `You are an AI email assistant. Use the following context from the user's emails to answer their questions. If the answer is not in the context, say you don't know based on the emails.
-
+  const result = streamText({
+    model: openai("gpt-4o"),
+    messages: [
+      {
+        role: "system",
+        content: `You are an AI email assistant. Use the following context from the user's emails to answer their questions. If the answer is not in the context, say you don't know based on the emails.
+        
         CONTEXT:
         ${context}`,
-  };
+      },
+      ...messages,
+    ],
+  });
 
-  const completion = await chatCompletion([systemPrompt, ...messages]);
-
-  return NextResponse.json({ message: completion?.content ?? "" });
+  return result.toDataStreamResponse();
 };
