@@ -6,7 +6,7 @@ import { X, Send, Sparkles, Paperclip, MoreVertical, Minimize2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { readDataStream } from "ai";
+import { readDataStream, type DataStreamPart } from "ai";
 
 interface ComposeModalProps {
   onClose: () => void;
@@ -34,7 +34,7 @@ export function ComposeModal({ onClose }: ComposeModalProps) {
       if (!response.ok) throw new Error("Failed to generate");
 
       if (response.body) {
-        for await (const part of readDataStream(response.body)) {
+        for await (const part of readDataStream(response.body) as AsyncIterable<DataStreamPart>) {
           if (part.type === "text-part") {
             setContent((prev) => prev + part.value);
           }

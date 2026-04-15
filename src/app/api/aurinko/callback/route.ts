@@ -1,9 +1,9 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import axios from "axios";
 import { env } from "@/env";
 import { db } from "@/server/db";
+import { syncEmails } from "@/lib/sync-engine";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -14,8 +14,7 @@ const getErrorMessage = (error: unknown) => {
 
 export const GET = async (req: NextRequest) => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const authFn = auth as () => Promise<{ userId?: string }>;
-  const { userId } = await authFn();
+  const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -66,6 +65,13 @@ export const GET = async (req: NextRequest) => {
         provider: "Aurinko",
       },
     });
+
+    // Trigger initial sync
+    try {
+      await syncEmails(account_id.toString());
+    } catch (error) {
+      console.error("Initial sync failed:", error);
+    }
 
     return NextResponse.redirect(new URL("/", req.url));
   } catch (error: unknown) {

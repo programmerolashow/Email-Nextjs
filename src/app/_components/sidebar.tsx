@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Send, Archive, Trash, Settings, Plus, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserButton } from "@clerk/nextjs";
 
 interface SidebarProps {
   className?: string;
@@ -11,15 +12,17 @@ interface SidebarProps {
 
 export function Sidebar({ className, onCompose }: SidebarProps) {
   return (
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     <div className={cn("flex flex-col h-full bg-white dark:bg-slate-900 border-r shadow-sm", className)}>
       <div className="p-6 flex items-center justify-between">
         <h1 className="text-2xl font-black bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent italic tracking-tighter">
           E-MASS
         </h1>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Settings className="w-5 h-5 text-slate-500" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <UserButton afterSignOutUrl="/welcome" />
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Settings className="w-5 h-5 text-slate-500" />
+          </Button>
+        </div>
       </div>
 
       <div className="px-4 mb-4">

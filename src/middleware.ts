@@ -1,19 +1,24 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/welcome(.*)",
   "/api/webhooks(.*)",
   "/api/trpc(.*)",
 ]);
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-export default clerkMiddleware(async (auth: unknown, request: unknown) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  if (!(isPublicRoute as (val: unknown) => boolean)(request)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await (await (auth as () => Promise<{ protect: () => Promise<void> }>)()).protect();
+export default clerkMiddleware(async (auth, req: NextRequest) => {
+  const { userId, redirectToSignIn } = await auth();
+
+  if (!userId && !isPublicRoute(req)) {
+    return redirectToSignIn();
+  }
+
+  // If user is not logged in and on the root page, redirect to welcome
+  if (!userId && req.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/welcome", req.url));
   }
 });
 

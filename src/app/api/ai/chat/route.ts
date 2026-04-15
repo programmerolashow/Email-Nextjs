@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { streamText, type Message } from "ai";
 import { getContext } from "@/lib/rag-pipeline";
 
 export const POST = async (req: Request) => {
@@ -9,8 +9,11 @@ export const POST = async (req: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { messages } = await req.json();
+  const { messages } = (await req.json()) as { messages: Message[] };
   const lastMessage = messages[messages.length - 1];
+  if (!lastMessage?.content) {
+    return new Response("No messages provided", { status: 400 });
+  }
   const context = await getContext(lastMessage.content);
 
   const result = streamText({

@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Bot, X, Send, Sparkles, Loader2 } from "lucide-react";
+import { Bot, X, Send, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useChat } from "ai/react";
+import { useChat, type Message } from "ai/react";
 
 interface ChatbotDrawerProps {
   className?: string;
@@ -67,7 +67,7 @@ export function ChatbotDrawer({ className }: ChatbotDrawerProps) {
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          {messages.map((m) => (
+          {messages.map((m: Message) => (
             <div
               key={m.id}
               className={cn(
@@ -82,7 +82,7 @@ export function ChatbotDrawer({ className }: ChatbotDrawerProps) {
           ))}
           {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 self-start max-w-[80%] p-3 rounded-2xl text-sm animate-pulse flex items-center gap-2">
-              <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
+              <RefreshCw className="w-3 h-3 animate-spin" /> Thinking...
             </div>
           )}
           <div ref={scrollRef} />

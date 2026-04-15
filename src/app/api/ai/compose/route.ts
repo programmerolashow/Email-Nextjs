@@ -8,7 +8,10 @@ export const POST = async (req: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { subject, prompt } = await req.json();
+  const { subject, prompt } = (await req.json()) as {
+    subject: string;
+    prompt: string;
+  };
 
   const result = streamText({
     model: openai("gpt-4o"),
